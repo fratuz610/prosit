@@ -3,24 +3,24 @@ package web
 import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
-	"prosit/err"
+	"prosit/cerr"
 	"prosit/process"
 	"strconv"
 )
 
 func getProcessErrors(params martini.Params, r render.Render) {
 
-	processID, cerr := strconv.Atoi(params["processID"])
+	processID, err := strconv.Atoi(params["processID"])
 
-	if cerr != nil {
-		outputError(err.NewBadRequestError("Unable to convert %s into a number: %v", params["processID"], cerr), r)
+	if err != nil {
+		outputError(cerr.NewBadRequestError("Unable to convert %s into a number: %v", params["processID"], err), r)
 		return
 	}
 
-	logList, cerr := process.GetProcessErrors(processID)
+	logList, err := process.GetProcessErrors(processID)
 
-	if cerr != nil {
-		outputError(cerr, r)
+	if err != nil {
+		outputError(err, r)
 		return
 	}
 

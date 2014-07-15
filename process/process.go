@@ -2,7 +2,7 @@ package process
 
 import (
 	"container/list"
-	"prosit/err"
+	"prosit/cerr"
 	"sync"
 )
 
@@ -14,12 +14,14 @@ func init() {
 }
 
 type Process struct {
-	Pid     int      `json:"pid"`
-	Run     string   `json:"run"`
-	ArgList []string `json:"argList"`
-	Folder  string   `json:"folder"`
-	Error   error    `json:"error"`
-	Started int64    `json:"started"`
+	Pid       int      `json:"pid"`
+	Run       string   `json:"run"`
+	ArgList   []string `json:"argList"`
+	Folder    string   `json:"folder"`
+	Error     error    `json:"error"`
+	Started   int64    `json:"started"`
+	IsRunning bool     `json:"isRunning"`
+	AlertID   string   `json:"alertID"`
 }
 
 func AddProcess(run, folder, alertID string) error {
@@ -57,10 +59,13 @@ func ListProcesses() []Process {
 		var tmpProcess = &Process{}
 		tmpProcess.Pid = tmpIntProcess.pid
 		tmpProcess.Run = tmpIntProcess.cmd.Path
-		tmpProcess.Args = tmpIntProcess.cmd.Args
+		tmpProcess.ArgList = tmpIntProcess.cmd.Args[1:]
 		tmpProcess.Folder = tmpIntProcess.cmd.Dir
 		tmpProcess.Error = tmpIntProcess.err
 		tmpProcess.Started = tmpIntProcess.lastStarted
+		tmpProcess.IsRunning = tmpIntProcess.isRunning
+		tmpProcess.AlertID = tmpIntProcess.alertID
+
 		ret = append(ret, *tmpProcess)
 	}
 
@@ -81,7 +86,7 @@ func GetProcessLogs(pid int) ([]string, error) {
 		}
 	}
 
-	return nil, err.NewBadRequestError("Process %d not found", pid)
+	return nil, cerr.NewBadRequestError("Process %d not found", pid)
 }
 
 func GetProcessErrors(pid int) ([]string, error) {
@@ -98,5 +103,5 @@ func GetProcessErrors(pid int) ([]string, error) {
 		}
 	}
 
-	return nil, err.NewBadRequestError("Process %d not found", pid)
+	return nil, cerr.NewBadRequestError("Process %d not found", pid)
 }

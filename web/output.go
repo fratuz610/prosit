@@ -3,7 +3,7 @@ package web
 import (
 	"github.com/martini-contrib/render"
 	"log"
-	"prosit/err"
+	"prosit/cerr"
 )
 
 type JSONError struct {
@@ -32,7 +32,7 @@ func outputError(outErr error, r render.Render) {
 	var httpCode = 0
 
 	switch outErr.(type) {
-	case *err.BadRequestError:
+	case *cerr.BadRequestError:
 		httpCode = 400
 	default:
 		httpCode = 500

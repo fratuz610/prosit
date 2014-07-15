@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"log"
 	"prosit/alert"
 	"sync"
 )
@@ -61,6 +60,10 @@ func (c *Consumer) LogList() []string {
 
 	c.mx.RLock()
 	defer c.mx.RUnlock()
+
+	if c.l == nil {
+		c.l = list.New()
+	}
 
 	ret := make([]string, 0)
 
