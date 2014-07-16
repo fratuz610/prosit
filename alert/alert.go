@@ -2,9 +2,13 @@ package alert
 
 import (
 	"container/list"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
-	"net/mail"
-	"prosit/cerr"
+	"os"
+	"os/user"
+	"path/filepath"
 	"sync"
 )
 
@@ -19,26 +23,54 @@ type Alert struct {
 
 var l *list.List
 var lMutex sync.RWMutex
+var persistFile string
 
 func init() {
 	l = list.New()
+
+	// first we try the current folder
+	persistFile = fmt.Sprintf("%s%cprosit-alerts.json", filepath.Dir(os.Args[0]), os.PathSeparator)
+
+	data, err := ioutil.ReadFile(persistFile)
+	if err != nil {
+
+		user, err := user.Current()
+
+		if err != nil {
+			log.Printf("Unable to determine current running user info: %v", err)
+			return
+		}
+
+		// then we try the home folder
+		persistFile = fmt.Sprintf("%s%cprosit-alerts.json", user.HomeDir, os.PathSeparator)
+
+		data, err = ioutil.ReadFile(persistFile)
+
+		if err != nil {
+			log.Printf("Unable to find/read persistance file '%s'", persistFile)
+			return
+		}
+	}
+
+	tempAlertList := make([]Alert, 0)
+	err = json.Unmarshal(data, &tempAlertList)
+
+	if err != nil {
+		log.Printf("Unable to json decode persistance file '%s': %v", persistFile, err)
+		return
+	}
+
+	lMutex.Lock()
+	defer lMutex.Unlock()
+
+	for _, tempAlert := range tempAlertList {
+		log.Printf("Adding back alert %s", tempAlert.Id)
+		l.PushBack(&Alert{tempAlert.Id, "mailgun", tempAlert.FromEmail, tempAlert.ToEmailList, tempAlert.ApiKey, tempAlert.Domain})
+	}
+
 }
 
 func AddAlert(id, fromEmail string, toEmailList []string, apiKey, domain string) error {
-
-	if AlertExists(id) {
-		return cerr.NewBadRequestError("Alert with id '%s' already exists", id)
-	}
-
-	if _, err := mail.ParseAddress(fromEmail); err != nil {
-		return cerr.NewBadRequestError("Invalid from email address '%s': %v", fromEmail, err)
-	}
-
-	for _, toEmail := range toEmailList {
-		if _, err := mail.ParseAddress(toEmail); err != nil {
-			return cerr.NewBadRequestError("Invalid to email address '%s': %v", toEmail, err)
-		}
-	}
 
 	lMutex.Lock()
 	defer lMutex.Unlock()
@@ -46,6 +78,7 @@ func AddAlert(id, fromEmail string, toEmailList []string, apiKey, domain string)
 	newAlert := &Alert{id, "mailgun", fromEmail, toEmailList, apiKey, domain}
 	l.PushBack(newAlert)
 
+	go persistAlerts()
 	return nil
 }
 
@@ -72,7 +105,7 @@ func AlertExists(id string) bool {
 
 	// Iterate through list and print its contents.
 	for e := l.Front(); e != nil; e = e.Next() {
-		var tmpAlert = e.Value.(Alert)
+		var tmpAlert = e.Value.(*Alert)
 
 		if tmpAlert.Id == id {
 			return true
@@ -88,10 +121,11 @@ func DeleteAlert(id string) bool {
 
 	// Iterate through list and print its contents.
 	for e := l.Front(); e != nil; e = e.Next() {
-		var tmpAlert = e.Value.(Alert)
+		var tmpAlert = e.Value.(*Alert)
 
 		if tmpAlert.Id == id {
 			l.Remove(e)
+			go persistAlerts()
 			return true
 		}
 	}
@@ -99,6 +133,31 @@ func DeleteAlert(id string) bool {
 	return false
 }
 
-func SendAlert(alertID, message string) {
-	log.Printf("Got alert for '%s' and message '%s'", alertID, message)
+func SendAlert(alertID, format string, a ...interface{}) {
+
+	message := fmt.Sprintf(format, a...)
+
+	log.Printf("ALERT: *** %s ***", message)
+
+	if alertID == "" {
+		return
+	}
+}
+
+func persistAlerts() {
+	alertList := ListAlerts()
+
+	data, err := json.Marshal(alertList)
+
+	if err != nil {
+		log.Printf("Unable to json encode alert list: %v", err)
+		return
+	}
+
+	err = ioutil.WriteFile(persistFile, data, 0644)
+
+	if err != nil {
+		log.Printf("Unable to write alert list file: %v", err)
+		return
+	}
 }

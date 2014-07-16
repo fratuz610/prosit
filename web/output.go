@@ -34,6 +34,8 @@ func outputError(outErr error, r render.Render) {
 	switch outErr.(type) {
 	case *cerr.BadRequestError:
 		httpCode = 400
+	case *cerr.NotFoundError:
+		httpCode = 404
 	default:
 		httpCode = 500
 	}

@@ -11,6 +11,7 @@ import (
 )
 
 type internalProcess struct {
+	id          string
 	pid         int
 	path        string
 	argList     []string
@@ -27,7 +28,7 @@ type internalProcess struct {
 	isRunning   bool
 }
 
-func newInternalProcess(run, folder, alertID string) (*internalProcess, error) {
+func newInternalProcess(id, run, folder, alertID string) (*internalProcess, error) {
 
 	var err error
 
@@ -40,6 +41,7 @@ func newInternalProcess(run, folder, alertID string) (*internalProcess, error) {
 	}
 
 	ret := &internalProcess{}
+	ret.id = id
 	ret.path = runList[0]
 	ret.argList = runList[1:]
 	ret.folder = folder
@@ -67,6 +69,9 @@ func (p *internalProcess) start() {
 			// we create the cmd structure every run
 			p.cmd = exec.Command(p.path, p.argList...)
 
+			// we set the startup folder
+			p.cmd.Dir = p.folder
+
 			// we set the out and err streams to something readable and autorotating
 			p.stdout = &Consumer{}
 			p.stderr = &Consumer{}
@@ -78,15 +83,13 @@ func (p *internalProcess) start() {
 
 			if p.err != nil {
 
-				log.Printf("Unable to start process '%s' because: %v\n", p.cmd.Path, p.err)
-
-				if p.alertID != "" {
-					// we have an alert to send
-					alert.SendAlert(p.alertID, fmt.Sprintf("Unable to start process %s: %v\n", p.cmd.Path, p.err))
-				}
+				// we have an alert to send
+				alert.SendAlert(p.alertID, "Unable to start process %s: %v\n", p.cmd.Path, p.err)
 
 				break
 			}
+
+			alert.SendAlert(p.alertID, "Process %s started correctly at %v", p.cmd.Path, time.Now())
 
 			log.Printf("Process %s' started\n", p.cmd.Path)
 
@@ -101,15 +104,11 @@ func (p *internalProcess) start() {
 			// the process is NOT running now
 			p.isRunning = false
 
+			// we have an alert to send
 			if p.err != nil {
-				log.Printf("Process '%s' exited with error %v\n", p.cmd.Path, p.err)
+				alert.SendAlert(p.alertID, "Process '%s' exited with error %v", p.cmd.Path, p.err)
 			} else {
-				log.Printf("Process '%s' exited with NO error\n", p.cmd.Path)
-			}
-
-			if p.alertID != "" {
-				// we have an alert to send
-				alert.SendAlert(p.alertID, fmt.Sprintf("Process '%s' exited with error (if any) %v\n", p.err))
+				alert.SendAlert(p.alertID, "Process '%s' exited with NO error", p.cmd.Path)
 			}
 
 			if p.terminate {
@@ -130,7 +129,7 @@ func (p *internalProcess) start() {
 			log.Printf("Process '%s' has an average duration of %d seconds\n", p.cmd.Path, p.avgDuration)
 
 			if p.avgDuration < 10 {
-				log.Printf("Average life %d too low (< 10 seconds), something is wrong, closing down\n", p.avgDuration)
+				alert.SendAlert(p.alertID, "Process '%s' keeps on crashing (average life %d seconds). Shutting down.", p.cmd.Path, p.avgDuration)
 				break
 			}
 		}
