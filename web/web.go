@@ -24,8 +24,8 @@ func StartWeb(port int) {
 	m.Get("/processes", listProcesses)
 	m.Post("/processes", binding.Bind(CreateProcessReq{}), createProcess)
 
-	//m.Post("/processes/:processID/stop", stopProcess)
-	//m.Post("/processes/:processID/restart", restartProcess)
+	m.Post("/processes/:processID/stop", stopProcess)
+	m.Post("/processes/:processID/restart", restartProcess)
 
 	m.Get("/processes/:processID/logs", getProcessLogs)
 	m.Get("/processes/:processID/errors", getProcessErrors)

@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type Alert struct {
@@ -64,10 +65,18 @@ func init() {
 	defer lMutex.Unlock()
 
 	for _, tempAlert := range tempAlertList {
-		log.Printf("Adding back alert %s", tempAlert.Id)
 		l.PushBack(&Alert{tempAlert.Id, "mailgun", tempAlert.FromEmail, tempAlert.ToEmailList, tempAlert.ApiKey, tempAlert.Domain})
 	}
 
+	// we setup the email delivery service in another go routine
+	go func() {
+
+		// we start the email delivery service
+		c := time.Tick(1 * time.Minute)
+		for _ = range c {
+			deliverAlerts()
+		}
+	}()
 }
 
 func AddAlert(id, fromEmail string, toEmailList []string, apiKey, domain string) error {
@@ -133,18 +142,8 @@ func DeleteAlert(id string) bool {
 	return false
 }
 
-func SendAlert(alertID, format string, a ...interface{}) {
-
-	message := fmt.Sprintf(format, a...)
-
-	log.Printf("ALERT: *** %s ***", message)
-
-	if alertID == "" {
-		return
-	}
-}
-
 func persistAlerts() {
+
 	alertList := ListAlerts()
 
 	data, err := json.Marshal(alertList)

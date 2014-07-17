@@ -2,43 +2,37 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
+	//"path/filepath"
+	"fmt"
+	"prosit/cl"
 	"prosit/web"
+	"strings"
 )
-
-var daemon bool
-var daemonPort int
-var user string
-var runCommand string
-var runFolder string
-var notifyID string
-
-func init() {
-	flag.BoolVar(&daemon, "daemon", true, "Run main daemon")
-	flag.IntVar(&daemonPort, "daemonPort", 9999, "The local http port to start the daemon server on")
-
-	flag.StringVar(&user, "user", "", "The user to run the process as")
-	flag.StringVar(&runCommand, "run", "", "The command to run")
-	flag.StringVar(&runFolder, "folder", "", "The run folder")
-	flag.StringVar(&notifyID, "notify", "", "The id of the notification schema to use")
-}
 
 func main() {
 
-	flag.Parse()
+	//thisFile, _ := filepath.Abs(os.Args[0])
 
-	for i, val := range os.Args {
-		log.Printf("Argument: %d, value: %s", i, val)
+	if len(os.Args) == 1 {
+		log.Printf("Starting as daemon process\n")
+		web.StartWeb(9999)
+		return
 	}
 
-	log.Printf("daemon: %v", daemon)
-	log.Printf("daemonPort: %v", daemonPort)
-	log.Printf("user: %v", user)
-	log.Printf("runCommand: %v", runCommand)
+	var err error
 
-	if daemon {
-		web.StartWeb(daemonPort)
+	switch strings.ToLower(os.Args[1]) {
+	case "add-process":
+		err = cl.AddProcessCL()
+	case "list-processes":
+		err = cl.ListProcessesCL()
+	case "stop-process":
+		err = cl.StopProcessCL()
+	}
+
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
 	}
 }

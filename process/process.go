@@ -19,7 +19,7 @@ type Process struct {
 	Run       string   `json:"run"`
 	ArgList   []string `json:"argList"`
 	Folder    string   `json:"folder"`
-	Error     error    `json:"error"`
+	Error     string   `json:"error"`
 	Started   int64    `json:"started"`
 	IsRunning bool     `json:"isRunning"`
 	AlertID   string   `json:"alertID"`
@@ -63,6 +63,40 @@ func ProcessExists(id string) bool {
 	return false
 }
 
+func StopProcess(id string) error {
+
+	lMutex.RLock()
+	defer lMutex.RUnlock()
+
+	// Iterate through list and print its contents.
+	for e := l.Front(); e != nil; e = e.Next() {
+		var tmpProc = e.Value.(*internalProcess)
+
+		if tmpProc.id == id {
+			return tmpProc.stop()
+		}
+	}
+
+	return nil
+}
+
+func RestartProcess(id string) error {
+
+	lMutex.RLock()
+	defer lMutex.RUnlock()
+
+	// Iterate through list and print its contents.
+	for e := l.Front(); e != nil; e = e.Next() {
+		var tmpProc = e.Value.(*internalProcess)
+
+		if tmpProc.id == id {
+			return tmpProc.restart()
+		}
+	}
+
+	return nil
+}
+
 func ListProcesses() []Process {
 
 	lMutex.RLock()
@@ -80,7 +114,9 @@ func ListProcesses() []Process {
 		tmpProcess.Run = tmpIntProcess.cmd.Path
 		tmpProcess.ArgList = tmpIntProcess.cmd.Args[1:]
 		tmpProcess.Folder = tmpIntProcess.folder
-		tmpProcess.Error = tmpIntProcess.err
+		if tmpIntProcess.err != nil {
+			tmpProcess.Error = tmpIntProcess.err.Error()
+		}
 		tmpProcess.Started = tmpIntProcess.lastStarted
 		tmpProcess.IsRunning = tmpIntProcess.isRunning
 		tmpProcess.AlertID = tmpIntProcess.alertID
@@ -91,7 +127,7 @@ func ListProcesses() []Process {
 	return ret
 }
 
-func GetProcessLogs(id string) ([]string, error) {
+func GetProcessLogs(id string) ([]LogItem, error) {
 
 	lMutex.RLock()
 	defer lMutex.RUnlock()
@@ -108,7 +144,7 @@ func GetProcessLogs(id string) ([]string, error) {
 	return nil, cerr.NewBadRequestError("Process '%s' not found", id)
 }
 
-func GetProcessErrors(id string) ([]string, error) {
+func GetProcessErrors(id string) ([]LogItem, error) {
 
 	lMutex.RLock()
 	defer lMutex.RUnlock()

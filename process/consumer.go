@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"prosit/alert"
 	"sync"
+	"time"
 )
 
 type Consumer struct {
@@ -13,6 +14,11 @@ type Consumer struct {
 	buf     bytes.Buffer
 	mx      sync.RWMutex
 	alertID string
+}
+
+type LogItem struct {
+	Message string `json:"message"`
+	Time    int64  `json:"time"`
 }
 
 func (c *Consumer) Write(p []byte) (n int, err error) {
@@ -27,7 +33,8 @@ func (c *Consumer) Write(p []byte) (n int, err error) {
 	for _, val := range p {
 		if val == '\n' {
 			// we save the buffer to the list
-			c.l.PushFront(c.buf.String())
+
+			c.l.PushFront(LogItem{c.buf.String(), time.Now().Unix()})
 
 			if c.alertID != "" {
 				// we have an alert to send
@@ -56,7 +63,7 @@ func (c *Consumer) SetAlertID(alertID string) {
 	c.alertID = alertID
 }
 
-func (c *Consumer) LogList() []string {
+func (c *Consumer) LogList() []LogItem {
 
 	c.mx.RLock()
 	defer c.mx.RUnlock()
@@ -65,10 +72,10 @@ func (c *Consumer) LogList() []string {
 		c.l = list.New()
 	}
 
-	ret := make([]string, 0)
+	ret := make([]LogItem, 0)
 
 	for e := c.l.Front(); e != nil; e = e.Next() {
-		ret = append(ret, e.Value.(string))
+		ret = append(ret, e.Value.(LogItem))
 	}
 
 	return ret
