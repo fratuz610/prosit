@@ -36,8 +36,6 @@ func StartWeb(port int) {
 
 	m.Get("/internal-log", getInternalLog)
 
-	//	m.Put("/cc/bill2bill/recycling-cassette", binding.Bind(ccbill.SetRecyclingCassetteTypeRequest{}), setRecyclingCassette)
-
 	m.Run()
 }
 
