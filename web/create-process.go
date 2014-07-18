@@ -15,7 +15,7 @@ type CreateProcessReq struct {
 	Id      string `json:"id"`
 	Run     string `json:"run"`
 	Folder  string `json:"folder"`
-	User    string `json:"user"`
+	RunAs   string `json:"runAs"`
 	AlertID string `json:"alertID"`
 }
 
@@ -25,7 +25,7 @@ func verifyCreateProcessRequest(req *CreateProcessReq) error {
 	req.Id = strings.Trim(req.Id, "\n\r\t ")
 	req.Run = strings.Trim(req.Run, "\n\r\t ")
 	req.Folder = strings.Trim(req.Folder, "\n\r\t ")
-	req.User = strings.Trim(req.User, "\n\r\t ")
+	req.RunAs = strings.Trim(req.RunAs, "\n\r\t ")
 	req.AlertID = strings.Trim(req.AlertID, "\n\r\t ")
 
 	if req.Id == "" {
@@ -69,7 +69,7 @@ func createProcess(req CreateProcessReq, params martini.Params, r render.Render)
 		return
 	}
 
-	err = process.AddProcess(req.Id, req.Run, req.Folder, req.AlertID)
+	err = process.AddProcess(req.Id, req.Run, req.Folder, req.AlertID, req.RunAs)
 
 	if err != nil {
 		outputError(err, r)

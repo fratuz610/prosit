@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"prosit/web"
 	"strings"
 )
 
-func AddProcessCL() error {
+func StartProcessCL() error {
 
 	// we request the run
 	run := readLine("Enter the command to run", "")
@@ -26,13 +27,20 @@ func AddProcessCL() error {
 		return fmt.Errorf("Unable to find programm '%s' to run", runList[0])
 	}
 
-	currentFolder, _ := os.Getwd()
+	currentUser, _ := user.Current()
 
 	// we request the folder
-	folder := readLine("Running folder", currentFolder)
+	runAs := readLine("Run as", currentUser.Username)
+
+	if _, err := user.Lookup(runAs); err != nil {
+		return fmt.Errorf("No user with id '%s'", runAs)
+	}
+
+	// we request the folder
+	folder := readLine("Running folder", currentUser.HomeDir)
 
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
-		return fmt.Errorf("Folder %s does not exist", folder)
+		return fmt.Errorf("Folder '%s' does not exist", folder)
 	}
 
 	// we request the alertID
@@ -40,6 +48,7 @@ func AddProcessCL() error {
 
 	createProcessReq := &web.CreateProcessReq{}
 	createProcessReq.Run = run
+	createProcessReq.RunAs = runAs
 	createProcessReq.Folder = folder
 	createProcessReq.AlertID = alertID
 
@@ -61,6 +70,6 @@ func AddProcessCL() error {
 		return fmt.Errorf("Server returned status code %d", resp.StatusCode)
 	}
 
-	fmt.Printf("Process '%s' created successfully\n\n", createProcessReq.Run)
+	fmt.Printf("Process '%s' added successfully\n\n", createProcessReq.Run)
 	return nil
 }

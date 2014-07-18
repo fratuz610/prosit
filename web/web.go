@@ -34,6 +34,8 @@ func StartWeb(port int) {
 	m.Post("/alerts", binding.Bind(CreateAlertReq{}), createAlert)
 	m.Delete("/alerts/:alertID", deleteAlert)
 
+	m.Get("/internal-log", getInternalLog)
+
 	//	m.Put("/cc/bill2bill/recycling-cassette", binding.Bind(ccbill.SetRecyclingCassetteTypeRequest{}), setRecyclingCassette)
 
 	m.Run()

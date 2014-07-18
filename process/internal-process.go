@@ -1,12 +1,16 @@
 package process
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"prosit/alert"
 	"prosit/cerr"
+	"prosit/launch"
 	"strings"
 	"time"
 )
@@ -20,6 +24,7 @@ type internalProcess struct {
 	folder        string
 	cmd           *exec.Cmd
 	err           error
+	runAs         string
 	terminate     bool
 	runCount      int
 	avgDuration   int
@@ -31,7 +36,7 @@ type internalProcess struct {
 	isInterrupted bool
 }
 
-func newInternalProcess(id, run, folder, alertID string) (*internalProcess, error) {
+func newInternalProcess(id, run, folder, alertID, runAs string) (*internalProcess, error) {
 
 	var err error
 
@@ -52,6 +57,7 @@ func newInternalProcess(id, run, folder, alertID string) (*internalProcess, erro
 	ret.avgDuration = -1
 	ret.alertID = alertID
 	ret.isRunning = false
+	ret.runAs = runAs
 
 	return ret, nil
 }
@@ -70,11 +76,23 @@ func (p *internalProcess) start() {
 
 			p.lastStarted = time.Now().Unix()
 
-			// we create the cmd structure every run
-			p.cmd = exec.Command(p.path, p.argList...)
+			lr := &launch.LaunchRequest{RunAs: p.runAs, FullPath: p.fullPath, Folder: p.folder}
 
-			// we set the startup folder
-			p.cmd.Dir = p.folder
+			var buf bytes.Buffer
+			b64enc := base64.NewEncoder(base64.StdEncoding, &buf)
+			p.err = gob.NewEncoder(b64enc).Encode(lr)
+			b64enc.Close()
+
+			if p.err != nil {
+				// we have an alert to send
+				alert.SendAlert(p.alertID, "Process '%s': unable to start because we can base64 encode ENV data: %v\n", p.fullPath, p.err)
+				break
+			}
+
+			// we launch ourself with a specific ENV variable
+			p.cmd = exec.Command(os.Args[0], "launch")
+
+			p.cmd.Env = append(os.Environ(), "_PROSIT_LAUNCH_REQ="+buf.String())
 
 			// we set the out and err streams to something readable and autorotating
 			p.stdout = &Consumer{}
