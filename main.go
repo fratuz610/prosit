@@ -52,10 +52,18 @@ func main() {
 		err = cl.StartProcessCL()
 	case "list-processes":
 		err = cl.ListProcessesCL()
+	case "logs":
+		err = cl.GetProcessLogs()
 	case "stop-process":
 		err = cl.StopProcessCL()
 	case "restart-process":
 		err = cl.RestartProcessCL()
+	case "list-alerts":
+		err = cl.ListAlertsCL()
+	case "delete-alert":
+		err = cl.DeleteAlertCL()
+	case "create-alert":
+		err = cl.CreateAlertCL()
 	}
 
 	if err != nil {

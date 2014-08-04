@@ -90,7 +90,7 @@ func (p *internalProcess) start() {
 			}
 
 			// we launch ourself with a specific ENV variable
-			p.cmd = exec.Command(os.Args[0], "launch")
+			p.cmd = exec.Command(os.Args[0], p.id)
 
 			p.cmd.Env = append(os.Environ(), "_PROSIT_LAUNCH_REQ="+buf.String())
 
@@ -185,19 +185,22 @@ func (p *internalProcess) stop() error {
 }
 
 func (p *internalProcess) restart() error {
-	if p.cmd.Process == nil {
-		return cerr.NewBadRequestError("Process '%s': Unable to stop a process that hasn't started yet", p.fullPath)
-	}
-
-	if !p.isRunning {
-		return cerr.NewBadRequestError("Process '%s': Unable to stop a process that isn't running", p.fullPath)
-	}
 
 	// we set the terminate flag to false
 	p.terminate = false
 
 	p.isInterrupted = true
 
-	// we send an ctrl+C signal
-	return p.cmd.Process.Signal(os.Interrupt)
+	if p.cmd.Process != nil && p.isRunning {
+		// we send an ctrl+C signal if the process is running
+		return p.cmd.Process.Signal(os.Interrupt)
+	}
+
+	// otherwise we reset the average duration
+	p.avgDuration = -1
+
+	// and we call start
+	p.start()
+
+	return nil
 }

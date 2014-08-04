@@ -32,12 +32,13 @@ func StartProcessCL() error {
 	// we request the folder
 	runAs := readLine("Run as", currentUser.Username)
 
-	if _, err := user.Lookup(runAs); err != nil {
+	runAsUser, err := user.Lookup(runAs)
+	if err != nil {
 		return fmt.Errorf("No user with id '%s'", runAs)
 	}
 
 	// we request the folder
-	folder := readLine("Running folder", currentUser.HomeDir)
+	folder := readLine("Running folder", runAsUser.HomeDir)
 
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
 		return fmt.Errorf("Folder '%s' does not exist", folder)
