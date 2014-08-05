@@ -47,23 +47,36 @@ func main() {
 
 	var err error
 
+	if len(os.Args) <= 2 {
+		fmt.Printf("ERROR: missing command line arguments\n")
+		return
+	}
+
 	switch strings.ToLower(os.Args[1]) {
-	case "start-process", "add-process":
-		err = cl.StartProcessCL()
-	case "list-processes":
-		err = cl.ListProcessesCL()
-	case "logs":
-		err = cl.GetProcessLogs()
-	case "stop-process":
-		err = cl.StopProcessCL()
-	case "restart-process":
-		err = cl.RestartProcessCL()
-	case "list-alerts":
-		err = cl.ListAlertsCL()
-	case "delete-alert":
-		err = cl.DeleteAlertCL()
-	case "create-alert":
-		err = cl.CreateAlertCL()
+	case "process":
+		switch strings.ToLower(os.Args[2]) {
+		case "start", "add":
+			err = cl.StartProcessCL()
+		case "list":
+			err = cl.ListProcessesCL()
+		case "logs":
+			err = cl.GetProcessLogs()
+		case "errors":
+			err = cl.GetProcessErrors()
+		case "stop":
+			err = cl.StopProcessCL()
+		case "restart":
+			err = cl.RestartProcessCL()
+		}
+	case "alerts":
+		switch strings.ToLower(os.Args[2]) {
+		case "list":
+			err = cl.ListAlertsCL()
+		case "delete", "remove":
+			err = cl.DeleteAlertCL()
+		case "create", "add":
+			err = cl.CreateAlertCL()
+		}
 	}
 
 	if err != nil {

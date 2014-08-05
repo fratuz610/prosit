@@ -26,7 +26,7 @@ var l *list.List
 var lMutex sync.RWMutex
 var persistFile string
 
-func init() {
+func initialize() {
 	l = list.New()
 
 	// first we try the current folder
@@ -81,6 +81,10 @@ func init() {
 
 func AddAlert(id, fromEmail string, toEmailList []string, apiKey, domain string) error {
 
+	if l == nil {
+		initialize()
+	}
+
 	lMutex.Lock()
 	defer lMutex.Unlock()
 
@@ -92,6 +96,10 @@ func AddAlert(id, fromEmail string, toEmailList []string, apiKey, domain string)
 }
 
 func ListAlerts() []Alert {
+
+	if l == nil {
+		initialize()
+	}
 
 	lMutex.RLock()
 	defer lMutex.RUnlock()
@@ -109,6 +117,10 @@ func ListAlerts() []Alert {
 
 func AlertExists(id string) bool {
 
+	if l == nil {
+		initialize()
+	}
+
 	lMutex.RLock()
 	defer lMutex.RUnlock()
 
@@ -125,6 +137,11 @@ func AlertExists(id string) bool {
 }
 
 func DeleteAlert(id string) bool {
+
+	if l == nil {
+		initialize()
+	}
+
 	lMutex.Lock()
 	defer lMutex.Unlock()
 
