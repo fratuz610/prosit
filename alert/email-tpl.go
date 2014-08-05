@@ -6,31 +6,36 @@ import (
 	"time"
 )
 
-func getEmailTemplate(alertList []string) (string, string) {
-
-	templateBody := `The following alerts have been registered:
+var templateBody string = `The following alerts have been registered:
 {{range .alertList}} 
 {{.}} {{end}}
-	
+
 This email has been automatically generated at {{.time}}`
 
-	templateSubject := `[Prosit notification] Alert`
+var templateSubject string = `[Prosit notification] Alert: '{{.firstAlert}}'`
 
-	bodyData := make(map[string]interface{})
-	bodyData["alertList"] = alertList
-	bodyData["time"] = time.Now().String()
+func getEmailTemplate(alertList []string) (string, string) {
 
-	tmpl, err := template.New("email").Parse(templateBody)
+	emailData := make(map[string]interface{})
+	emailData["alertList"] = alertList
+	emailData["firstAlert"] = alertList[0]
+	emailData["time"] = time.Now().String()
+
+	return processTemplate(templateSubject, emailData), processTemplate(templateBody, emailData)
+}
+
+func processTemplate(templateStr string, data interface{}) string {
+
+	tmpl, err := template.New("email").Parse(templateStr)
 	if err != nil {
 		panic(err)
 	}
 
 	body := &bytes.Buffer{}
-	err = tmpl.Execute(body, bodyData)
+	err = tmpl.Execute(body, data)
 	if err != nil {
 		panic(err)
 	}
 
-	return templateSubject, string(body.Bytes())
-
+	return string(body.Bytes())
 }
