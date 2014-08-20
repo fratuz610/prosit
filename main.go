@@ -36,6 +36,14 @@ func main() {
 
 	if len(os.Args) == 1 {
 
+		// we need to be root
+		if os.Getuid() != 0 {
+			fmt.Printf("ERROR: This program must run as root in service mode. Got UID %d\n", os.Geteuid())
+			os.Exit(2)
+		}
+
+		log.Printf("Service mode detected, redirecting output\n")
+
 		// we redirect stdout/err
 		ilog.RedirectOutput()
 		log.SetOutput(ilog.GetWriter())
@@ -55,28 +63,34 @@ func main() {
 	switch strings.ToLower(os.Args[1]) {
 	case "process":
 		switch strings.ToLower(os.Args[2]) {
-		case "start", "add":
+		case "start", "add", "create", "new":
 			err = cl.StartProcessCL()
 		case "list":
 			err = cl.ListProcessesCL()
-		case "logs":
+		case "logs", "log":
 			err = cl.GetProcessLogs()
 		case "errors":
 			err = cl.GetProcessErrors()
-		case "stop":
+		case "stop", "terminate":
 			err = cl.StopProcessCL()
 		case "restart":
 			err = cl.RestartProcessCL()
+		default:
+			err = cl.ProcessHelpCL()
 		}
-	case "alerts":
+	case "alert":
 		switch strings.ToLower(os.Args[2]) {
 		case "list":
 			err = cl.ListAlertsCL()
 		case "delete", "remove":
 			err = cl.DeleteAlertCL()
-		case "create", "add":
+		case "create", "add", "new":
 			err = cl.CreateAlertCL()
+		default:
+			err = cl.AlertHelpCL()
 		}
+	default:
+		err = cl.HelpCL()
 	}
 
 	if err != nil {
